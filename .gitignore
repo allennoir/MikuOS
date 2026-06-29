@@ -1,0 +1,4 @@
+# local env / secrets — token is embedded in app.js for the static build
+.env
+node_modules/
+.DS_Store

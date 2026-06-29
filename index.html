@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>MikuOS — PROCON//2026</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Three.js mounts the WebGL CRT + CSS3D screen here -->
+  <div id="stage3d"></div>
+
+  <!-- The live OS screen. scene.js lifts this onto the 3D CRT's display. -->
+  <div class="screen" id="crt">
+
+    <!-- ===== desktop: wallpaper + shortcut icons ===== -->
+    <div id="desktop" class="desktop">
+      <div class="wm"><span class="wm-jp">初音ミク</span>MikuOS<span class="wm-v"> v2.6</span></div>
+      <div id="icons" class="icons"></div>
+    </div>
+
+    <!-- ===== windows (apps) get appended here ===== -->
+    <div id="windows" class="windows"></div>
+
+    <!-- transient layers (context menus, dialogs, toasts, coach) are appended to #crt by app.js -->
+
+    <!-- ===== taskbar ===== -->
+    <footer id="taskbar" class="taskbar">
+      <button id="startbtn" class="start" aria-haspopup="true" aria-expanded="false"><span class="flag"></span><span class="lbl">start</span></button>
+      <div id="quicklaunch" class="quicklaunch">
+        <button id="showdesktop" class="ql-btn" title="Show Desktop" aria-label="Show Desktop"><span class="ql-sd"></span></button>
+      </div>
+      <div id="tasks" class="tasks"></div>
+      <aside id="tray" class="tray">
+        <div id="nowplaying" class="nowplaying hidden" aria-label="Now playing">
+          <button class="np-btn np-prev" title="previous" aria-label="previous track">⏮</button>
+          <button class="np-btn np-play" title="play / pause" aria-label="play or pause">▶</button>
+          <button class="np-btn np-next" title="next" aria-label="next track">⏭</button>
+          <button class="np-title" title="show player"><span class="np-label">—</span><span class="np-bar"><i></i></span></button>
+        </div>
+        <button id="volbtn" class="tray-ic vol" title="Volume" aria-label="Volume"><span class="vol-ic">🔊</span></button>
+        <button id="netbtn" class="tray-ic net" title="TextAlive connection" aria-label="TextAlive connection">▰▰▰</button>
+        <button id="clock" class="clock" title="Date & time">--:--</button>
+      </aside>
+    </footer>
+
+    <!-- ===== start menu (two-pane Luna) ===== -->
+    <div id="startmenu" class="startmenu hidden" role="menu" aria-label="Start menu">
+      <div class="sm-head">
+        <div class="sm-avatar" id="sm-avatar">♪</div>
+        <div class="sm-user"><b>MikuOS</b><span class="sm-jp">マジカルミライ 2026</span></div>
+      </div>
+      <div class="sm-body">
+        <ol id="sm-list" class="sm-list"></ol>
+        <div class="sm-right">
+          <div class="ri" data-act="player"><span class="ri-ic">🎵</span><b>My Music</b></div>
+          <div class="ri" data-act="documents"><span class="ri-ic">📂</span>My Documents</div>
+          <div class="ri" data-act="explorer"><span class="ri-ic">💻</span>My Computer</div>
+          <div class="sm-sep"></div>
+          <div class="ri" data-act="control"><span class="ri-ic">🛠️</span>Control Panel</div>
+          <div class="ri" data-act="run"><span class="ri-ic">▶</span>Run…</div>
+          <div class="ri" data-act="credits"><span class="ri-ic">★</span>Credits</div>
+          <div class="ri" data-act="help"><span class="ri-ic">❔</span>Help and Support</div>
+          <div class="credit">powered by<br>TextAlive App API</div>
+        </div>
+      </div>
+      <div class="sm-foot">
+        <div class="fbtn" id="logoff"><span class="ico-logoff"></span>Log Off</div>
+        <div class="fbtn" id="turnoff"><span class="ico-shutdown">⏻</span>Turn Off</div>
+      </div>
+    </div>
+
+    <!-- ===== boot / loading splash (XP) ===== -->
+    <div id="boot" class="boot">
+      <div class="xp-brand">
+        <span class="brand-sm">初音ミク</span>
+        <span class="brand-main"><span class="w">Miku</span><span class="xp">OS</span></span>
+      </div>
+      <div class="xp-loader"><div class="blocks"><i></i><i></i><i></i></div></div>
+      <pre class="logo"></pre>
+      <p class="tag">初音ミク「マジカルミライ 2026」プログラミング・コンテスト</p>
+      <pre id="bootlog" class="bootlog"></pre>
+      <div class="xp-copy">© MikuOS — powered by TextAlive App API</div>
+    </div>
+
+    <!-- ===== login / welcome screen (XP) — also the autoplay/SFX unlock gesture ===== -->
+    <div id="login" class="login hidden">
+      <div class="login-top"></div>
+      <div class="login-mid">
+        <div class="login-left">
+          <div class="login-brand"><span class="brand-sm">初音ミク</span><span class="brand-main"><span class="w">Miku</span><span class="xp">OS</span></span></div>
+          <p class="login-prompt">To begin, click<br>your user name</p>
+        </div>
+        <div class="login-rule"></div>
+        <div class="login-right">
+          <div id="login-accounts" class="login-accts"></div>
+        </div>
+      </div>
+      <div class="login-bot"><span class="login-help">choose a song to start the show · or Free Play to explore MikuOS</span></div>
+    </div>
+
+    <!-- ===== shutdown / "safe to turn off" overlay ===== -->
+    <div id="shutdown" class="shutdown hidden">
+      <div class="sd-msg">
+        <div class="sd-brand"><span class="w">Miku</span><span class="xp">OS</span></div>
+        <p class="sd-line">It is now safe to turn off your computer.</p>
+        <p class="sd-sub">click anywhere to power on ⏻</p>
+      </div>
+    </div>
+
+    <!-- portrait / tiny-viewport courtesy banner (flat mode only) -->
+    <div id="rotate" class="rotate hidden">
+      <div class="rot-ic">🖥️</div>
+      <b>MikuOS is best on a wider screen</b>
+      <span>rotate your device to landscape — or open on a desktop for the full 3D CRT</span>
+    </div>
+
+    <!-- TextAlive media banner lives here, tucked away off-screen-ish -->
+    <div id="media" class="media-host"></div>
+  </div>
+
+  <!-- TextAlive App API (UMD) needs axios as a peer dependency — load it first -->
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://unpkg.com/textalive-app-api@0.4.0/dist/index.js"></script>
+  <script src="app.js"></script>
+
+  <!-- Three.js (ES modules via import map) builds the 3D CRT around the screen -->
+  <script type="importmap">
+  { "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  } }
+  </script>
+  <script type="module" src="scene.js"></script>
+</body>
+</html>
