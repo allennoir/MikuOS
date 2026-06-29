@@ -23,7 +23,7 @@ const TOKEN = window.TEXTALIVE_APP_TOKEN || "lGGaI9RYoqSyv4BM";
    c = accent colour (drives the per-song stage + CRT screen glow).
    Version IDs from https://developer.textalive.jp/events/magicalmirai2026/ */
 const SONGS = [
-  { t:"こたえて", a:"imie", r:"KOTAETE", e:"ANSWER ME", icon:"♪", c:"#39c5bb", url:"https://piapro.jp/t/6W2N/20251215164617",
+  { t:"こたえて", a:"imie", r:"KOTAETE", e:"ANSWER ME", c:"#39c5bb", url:"https://piapro.jp/t/6W2N/20251215164617",
     v:{ beatId:4827293, chordId:2963754, repetitiveSegmentId:3086261, lyricId:126519, lyricDiffId:28645 } },
   { t:"アフター・ザ・カーテン", a:"Rulmry", r:"AFUTA ZA KATEN", e:"AFTER THE CURTAIN", icon:"❂", c:"#b18cff", url:"https://piapro.jp/t/zoqO/20251214200738",
     v:{ beatId:4827294, chordId:2963755, repetitiveSegmentId:3086262, lyricId:126591, lyricDiffId:28627 } },
@@ -50,6 +50,58 @@ const rnd = (a) => a[(Math.random() * a.length) | 0];
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const fmt = (ms) => { ms = Math.max(0, ms | 0); const s = (ms / 1000) | 0; return `${(s / 60) | 0}:${String(s % 60).padStart(2, "0")}`; };
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ---- icons: inline SVGs (Lucide, MIT — publicly available) ---------------
+   ico("name") returns an <svg class="ic …">. currentColor lets CSS drive the
+   colour; sizing follows the container's font-size (1em). Transport glyphs are
+   filled; the rest are stroked. All songs share the single "music" icon. */
+const _ICON_STROKE = {
+  music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  monitor: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  folder: '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  star: '<path d="M11.5 2.7a.5.5 0 0 1 .9 0l2.6 5.3 5.8.8a.5.5 0 0 1 .3.9l-4.2 4 1 5.8a.5.5 0 0 1-.8.5L12 17.3l-5.2 2.7a.5.5 0 0 1-.7-.5l1-5.8-4.2-4a.5.5 0 0 1 .3-.9l5.8-.8z"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  volume: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+  shuffle: '<path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/>',
+  repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  maximize: '<path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  close: '<path d="M18 6 6 18M6 6l12 12"/>',
+  minimize: '<path d="M5 12h14"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  warning: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+  trash: '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>',
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>',
+  power: '<path d="M12 2v10"/><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>',
+  restart: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  refresh: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M21 21v-5h-5"/>',
+  message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+  fire: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  clapper: '<path d="m20.2 6-17.2 5-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z"/><path d="m6.2 5.3 3.1 3.9M12.4 3.4l3.1 4M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
+  back: '<path d="m12 19-7-7 7-7M19 12H5"/>',
+  forward: '<path d="m12 5 7 7-7 7M5 12h14"/>',
+  signal: '<path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 4v16"/>',
+  help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  run: '<path d="m9 18 6-6-6-6"/>',
+};
+const _ICON_FILL = {
+  play: '<path d="M6 4.5v15l13-7.5z"/>',
+  pause: '<path d="M7 4h3v16H7zM14 4h3v16h-3z"/>',
+  prev: '<path d="M19 5v14l-9-7zM7 5h2v14H7z"/>',
+  next: '<path d="M5 5v14l9-7zM15 5h2v14h-2z"/>',
+};
+function ico(name, cls) {
+  const c = "ic" + (cls ? " " + cls : "");
+  if (_ICON_FILL[name]) return `<svg class="${c}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${_ICON_FILL[name]}</svg>`;
+  return `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${_ICON_STROKE[name] || ""}</svg>`;
+}
+const SONG_ICON = "music";   // every song shares the same icon
 
 /* environment flags */
 const mqReduce = matchMedia("(prefers-reduced-motion:reduce)");
@@ -157,7 +209,7 @@ const Sfx = {
 };
 
 /* =====================================================================
-   Coordinate helpers — convert client px to the screen's 1280x752 space.
+   Coordinate helpers — convert client px to the screen's 1280x1025 space.
    The CSS3D plane is scaled, so every direct-manipulation gesture divides
    by the rendered scale (rect.width / 1280), matching the original drag.
    ===================================================================== */
@@ -203,7 +255,7 @@ function showContextMenu(clientX, clientY, items) {
   const { x, y } = toScreen(clientX, clientY);
   const w = m.offsetWidth, h = m.offsetHeight;
   m.style.left = clamp(x, 2, 1280 - w - 2) + "px";
-  m.style.top = clamp(y, 2, 752 - h - 2) + "px";
+  m.style.top = clamp(y, 2, 1025 - h - 2) + "px";
   openMenu = m;
 }
 
@@ -226,7 +278,7 @@ function makeDialog(title, bodyHTML, buttons) {
     $(".x", dlg).addEventListener("click", close);
     screenEl.appendChild(scrim); screenEl.appendChild(dlg);
     dlg.style.left = ((1280 - dlg.offsetWidth) / 2) + "px";
-    dlg.style.top = clamp((752 - dlg.offsetHeight) / 2 - 30, 30, 600) + "px";
+    dlg.style.top = clamp((1025 - dlg.offsetHeight) / 2 - 30, 30, 600) + "px";
     dlg.style.zIndex = ++zTop + 600;
     scrim.style.zIndex = zTop + 599;
     dlgStack.push(close);
@@ -306,9 +358,9 @@ function makeWindow(key, title, icon, extraClass = "") {
    Dragging to the top edge maximizes; to a side edge snaps to that half (aero-snap-lite). */
 let snapGhost = null;
 function snapZoneFor(x, y) {
-  if (y <= 6) return { zone: "max", left: 0, top: 0, w: 1280, h: 722 };
-  if (x <= 6) return { zone: "left", left: 0, top: 0, w: 640, h: 722 };
-  if (x >= 1274) return { zone: "right", left: 640, top: 0, w: 640, h: 722 };
+  if (y <= 6) return { zone: "max", left: 0, top: 0, w: 1280, h: 995 };
+  if (x <= 6) return { zone: "left", left: 0, top: 0, w: 640, h: 995 };
+  if (x >= 1274) return { zone: "right", left: 640, top: 0, w: 640, h: 995 };
   return null;
 }
 function showSnapGhost(z) {
@@ -334,7 +386,7 @@ function makeDraggable(app, handle) {
     let nx = (e.clientX - r.left) / scale - grabX;
     let ny = (e.clientY - r.top) / scale - grabY;
     nx = clamp(nx, -app.win.offsetWidth + 80, 1280 - 80);
-    ny = clamp(ny, 0, 722 - 28);
+    ny = clamp(ny, 0, 995 - 28);
     app.win.style.left = nx + "px"; app.win.style.top = ny + "px";
     const cur = toScreen(e.clientX, e.clientY);
     snap = snapZoneFor(cur.x, cur.y); showSnapGhost(snap);
@@ -366,7 +418,7 @@ function makeResizable(app, minW = 360, minH = 240) {
   g.addEventListener("pointermove", (e) => {
     if (!on) return;
     const nw = clamp(sw + (e.clientX / scale - sx), minW, 1280 - app.win.offsetLeft);
-    const nh = clamp(sh + (e.clientY / scale - sy), minH, 722 - app.win.offsetTop);
+    const nh = clamp(sh + (e.clientY / scale - sy), minH, 995 - app.win.offsetTop);
     app.win.style.width = nw + "px"; app.win.style.height = nh + "px";
   });
   g.addEventListener("pointerup", () => { on = false; });
@@ -377,7 +429,7 @@ function toggleMax(app) {
   if (!app.max) {
     app.normalRect = { left: app.win.style.left, top: app.win.style.top, width: app.win.style.width, height: app.win.style.height };
     app.max = true; app.win.classList.add("max");
-    app.win.style.left = "0px"; app.win.style.top = "0px"; app.win.style.width = "1280px"; app.win.style.height = "722px";
+    app.win.style.left = "0px"; app.win.style.top = "0px"; app.win.style.width = "1280px"; app.win.style.height = "995px";
   } else {
     app.max = false; app.win.classList.remove("max");
     const r = app.normalRect || {};
@@ -744,7 +796,7 @@ function openControlPanel() {
   app.win.insertAdjacentHTML("beforeend",
     `<div class="appbody control">
        <fieldset><legend>Theme</legend><div class="cp-row">${themeOpt("blue", "Luna Blue")}${themeOpt("olive", "Olive")}${themeOpt("silver", "Silver")}</div></fieldset>
-       <fieldset><legend>Wallpaper</legend><div class="cp-row">${wpOpt("bliss", "Bliss")}${wpOpt("teal", "Teal Field")}${wpOpt("night", "Mikunight")}</div></fieldset>
+       <fieldset><legend>Wallpaper</legend><div class="cp-row">${wpOpt("bliss", "Miku")}${wpOpt("teal", "Teal Field")}${wpOpt("night", "Mikunight")}</div></fieldset>
        <fieldset><legend>CRT effects</legend>
          <label><input type="checkbox" id="cp-scan" ${Settings.get("scanlines", true) ? "checked" : ""}/> Scanlines</label>
          <label>Vignette <input type="range" id="cp-vig" min="0" max="60" value="${Math.round(Settings.get("vignette", .34) * 100)}"/></label>
@@ -857,6 +909,8 @@ function togglePlay(app) {
 
 function resetRender() {
   phrase = null; chars = []; scrambleTick = -1;
+  lastRenderPos = 0;                 // don't let a previous song's position leak into the next
+  lyricFeedReset();
   if (active && active.el) { active.el.lyric.innerHTML = ""; active.el.hero.classList.remove("has-lyric"); active.el.stage && active.el.stage.classList.remove("chorus", "minorchord"); }
   lastBeat = -1; inChorus = false; bar = 0; lastDown = -1; pct = 0; lastChordMinor = null; lastBeatPos = -1;
 }
@@ -902,6 +956,45 @@ function updateTaskDots() {
   }
 }
 
+/* =====================================================================
+   Lyric feed — a running, auto-scrolling transcript broadcast to any number
+   of "sinks" (the browser results panel, the terminal, the editor). Driven
+   by render() one line per phrase, so every surface follows the song live.
+   ===================================================================== */
+const LyricFeed = { sinks: new Set() };
+/* opts.render(text) -> element lets a sink style each line (e.g. the browser
+   renders lyrics AS search-result rows); opts.scrollEl is what gets scrolled to
+   follow the lyrics (e.g. the whole browser viewport, not just the list). */
+function lyricSinkAdd(el, opts = {}) {
+  if (!el) return;
+  el.classList.add("lyric-feed");
+  el._lf = { last: "", render: opts.render || null, scrollEl: opts.scrollEl || el };
+  el.innerHTML = "";                                  // drop any placeholder, start clean
+  LyricFeed.sinks.add(el);
+}
+function lyricSinkRemove(el) { if (el) LyricFeed.sinks.delete(el); }
+function lyricSinkClear() { LyricFeed.sinks.clear(); }
+function lyricFeedReset() {
+  for (const el of LyricFeed.sinks) { el.innerHTML = ""; if (el._lf) el._lf.last = ""; }
+}
+function lyricFeedPush(text) {
+  text = (text || "").trim(); if (!text) return;
+  for (const el of LyricFeed.sinks) {
+    if (!el.isConnected) { LyricFeed.sinks.delete(el); continue; }   // window closed → self-clean
+    const lf = el._lf || (el._lf = { last: "", render: null, scrollEl: el });
+    if (lf.last === text) continue;
+    lf.last = text;
+    const prev = el.querySelector(".lf-line.cur"); if (prev) prev.classList.remove("cur");
+    let line;
+    if (lf.render) { line = lf.render(text); }
+    else { line = document.createElement("div"); line.textContent = text; }
+    line.classList.add("lf-line", "cur");
+    el.appendChild(line);
+    while (el.childElementCount > 80) el.firstElementChild.remove();
+    const sc = lf.scrollEl; sc.scrollTop = sc.scrollHeight;          // follow the lyrics as they appear
+  }
+}
+
 /* ---- per-frame render (active app only) ---------------------------------- */
 function render(pos) {
   if (!active || !active.el || !player.video) return;
@@ -931,6 +1024,19 @@ function render(pos) {
     const phase = clamp((pos - b.startTime) / (b.duration || 1), 0, 1);
     active.el.viz.forEach((bar, k) => { bar.style.transform = `scaleY(${0.18 + 0.82 * Math.abs(Math.sin(phase * Math.PI + k * 0.5))})`; });
   }
+  // Nico danmaku-page visualizer — driven by the song's beat grid + chorus
+  if (active.el.nicovis && active.el.nicovis.length) {
+    const bp = b ? clamp((pos - b.startTime) / (b.duration || 1), 0, 1) : 1;
+    const env = 1 - bp;                              // punches on each beat, decays before the next
+    const boost = inChorus ? 1 : 0.78;
+    const bars = active.el.nicovis, n = bars.length;
+    for (let k = 0; k < n; k++) {
+      const spatial = Math.abs(Math.sin(k * 0.5 + pos * 0.0042));
+      const ripple = 0.5 + 0.5 * Math.sin(k * 1.3 - pos * 0.011);
+      const h = clamp(0.12 + boost * (0.5 * spatial * (0.45 + 0.55 * env) + 0.42 * ripple * env), 0.05, 1);
+      bars[k].style.transform = `scaleY(${h.toFixed(3)})`;
+    }
+  }
 
   // chord colour (major/minor brightness) — update only on change
   if (player.findChord) {
@@ -951,7 +1057,7 @@ function render(pos) {
   updateNowPlaying();
 
   const ph = v.findPhrase(pos);
-  if (ph && ph !== phrase) { buildPhrase(ph); if (active.danmaku) spawnDanmaku(ph.text, pos, "lyric"); }
+  if (ph && ph !== phrase) { buildPhrase(ph); lyricFeedPush(ph.text); if (active.danmaku) spawnDanmaku(ph.text, pos, "lyric"); }
   active.el.hero.classList.toggle("has-lyric", !!ph);
   if (ph && chars.length) {
     const tick = (pos / 80) | 0, scram = tick !== scrambleTick;
@@ -1013,6 +1119,7 @@ $(".np-title", elNowPlaying).addEventListener("click", () => { if (active) { res
    Shell — desktop icons, taskbar, start menu, tray flyouts, boot/login
    ===================================================================== */
 const EXTRA_ICONS = [
+  { key: "browser", icon: "🌐", label: "Internet", sub: "MikuNet", act: () => { const a = openBrowser(); brHome(a); }, cls: "app-browser" },
   { key: "player", icon: "♬", label: "Media Player", sub: "jukebox", act: () => openPlayer(), cls: "app-player" },
   { key: "explorer", icon: "💻", label: "My Computer", sub: "files", act: () => openExplorer(), cls: "app-explorer" },
   { key: "credits", icon: "★", label: "Credits", sub: "attribution", act: openCredits, cls: "app-readme" },
@@ -1027,7 +1134,7 @@ function buildDesktop() {
     ic.style.setProperty("--accent", s.c);
     ic.innerHTML = `<div class="glyph">${s.icon || "♪"}<span class="num">${i + 1}</span></div>` +
       `<div class="label">${esc(s.t)}</div><div class="sub">${esc(s.a)}</div>`;
-    wireIcon(ic, () => openSong(i), [
+    wireIcon(ic, () => startScenario(i), [
       { label: "Play music video ▶", icon: "🎬", act: () => startScenario(i) },
       { label: "Open in player", icon: "▶", act: () => openSong(i) },
       { label: "Add to Media Player", icon: "♬", act: () => openPlayer(i) },
@@ -1413,9 +1520,9 @@ function cineClearTimers() {
   const rs = Cinema.rejectors; Cinema.rejectors = [];
   rs.forEach((r) => r(CINE_ABORT));
 }
-function cineGuard() { if (!Cinema.running || !apps.has("browser")) throw CINE_ABORT; }
+function cineGuard() { if (!Cinema.running || Cinema.aborted) throw CINE_ABORT; }
 
-/* ---- fake cursor (lives in the 1280x752 plane) --------------------------- */
+/* ---- fake cursor (lives in the 1280x1025 plane) --------------------------- */
 function cineCursor() {
   if (Cinema.cursor) return Cinema.cursor;
   const c = document.createElement("div"); c.className = "cine-cursor";
@@ -1479,10 +1586,26 @@ function openBrowser() {
        </div>
        <div class="br-prog"><i></i></div>
        <div class="br-view"></div>
+     </div>
+     <div class="br-engine" aria-hidden="true">
+       <div class="stage"><div class="hero"><div class="titlecard"></div><div class="lyric"></div></div></div>
+       <p class="sr-lyric"></p>
+       <span class="fill"></span><span class="time"></span><span class="statusline"></span><button class="play"></button>
      </div>`);
-  app.el = { addr: $(".br-addr", app.win), view: $(".br-view", app.win), prog: $(".br-prog", app.win) };
+  // app.el starts wired to the hidden engine so the shared player can drive
+  // playback (and the lyric timeline) before the visible lyric panel exists;
+  // brResults() re-points the visual fields to the on-page panel, and
+  // openNicoPage() re-points them again to the danmaku stage.
+  app.el = {
+    addr: $(".br-addr", app.win), view: $(".br-view", app.win), prog: $(".br-prog", app.win),
+    stage: $(".br-engine .stage", app.win), hero: $(".br-engine .hero", app.win),
+    titlecard: $(".br-engine .titlecard", app.win), lyric: $(".br-engine .lyric", app.win),
+    sr: $(".br-engine .sr-lyric", app.win), fill: $(".br-engine .fill", app.win),
+    time: $(".br-engine .time", app.win), status: $(".br-engine .statusline", app.win),
+    play: $(".br-engine .play", app.win),
+  };
   makeResizable(app, 560, 380);
-  placeWin(app, 96, 40, 1056, 632);
+  placeWin(app, 80, 44, 1120, 884);   // large, but never fullscreen
   return app;
 }
 function setAddr(app, url) { if (app.el && app.el.addr) app.el.addr.textContent = url; }
@@ -1502,61 +1625,182 @@ function brHome(app) {
 }
 function brResults(app, q, page) {
   const total = 7240 + (q.length * 137);
-  const rows = LYRIC_SITES.map((site, k) => {
-    const s = SONGS[Cinema.song];
-    const path = ["lyric", "song", "t", "words", "kashi"][k % 5] + "/" + (1000 + k + page * 50);
-    const snip = page === 1 && k === 0
-      ? `${s.t} の歌詞ページ。${s.a} feat. 初音ミク。フルで歌詞を表示 …`
-      : `「${s.t}」${s.r} — ${site.tag} に掲載の歌詞。コードと一緒に表示 …`;
-    return `<a class="br-result rhide" tabindex="0">
-        <div class="br-r-url"><span class="br-fav">🎵</span>${esc(site.host)} › ${esc(path)}</div>
-        <div class="br-r-title">${esc(s.t)}「${esc(s.r)}」歌詞 — ${esc(s.a)} | ${esc(site.tag)}</div>
-        <div class="br-r-snip">${esc(snip)}</div>
-      </a>`;
-  }).join("");
-  const pages = [1, 2, 3, 4, 5].map((n) =>
-    `<span class="br-pg${n === page ? " on" : ""}">${n}</span>`).join("");
+  const s = SONGS[Cinema.song];
+  // a single top result the cursor clicks through; the rest of the results are
+  // the live lyrics, which stream in below as the song plays.
+  const top = LYRIC_SITES[0];
   app.el.view.innerHTML =
-    `<div class="br-results">
+    `<div class="br-results" style="--accent:${esc(s.c)}">
        <div class="br-results-bar"><span class="br-mini">Miku<b>Search</b></span>
          <span class="br-q2">${esc(q)}</span></div>
-       <div class="br-stat">約 ${total.toLocaleString()} 件 (0.${30 + page}秒) — すべて歌詞サイト</div>
-       <div class="br-list">${rows}</div>
-       <div class="br-pages">${pages}<button class="br-page-next">次へ ›</button></div>
+       <div class="br-stat">約 ${total.toLocaleString()} 件 (0.${30 + page}秒) — すべて歌詞サイト · <b class="br-live">▶ 歌詞を再生中</b></div>
+       <div class="br-list">
+         <a class="br-result rhide" data-anchor="1" tabindex="0">
+           <div class="br-r-url"><span class="br-fav">🎵</span>${esc(top.host)} › lyric/1050</div>
+           <div class="br-r-title">${esc(s.t)}「${esc(s.r)}」歌詞 — ${esc(s.a)} | ${esc(top.tag)}</div>
+           <div class="br-r-snip">${esc(s.t)} の歌詞ページ。${esc(s.a)} feat. 初音ミク。フルで歌詞を表示 — 再生に合わせて表示中 …</div>
+         </a>
+         <div class="br-lyric-results lyric-feed" aria-live="polite"></div>
+       </div>
      </div>`;
+}
+/* register the results list as the lyric sink: each phrase streams in as its own
+   search-result row, and the whole browser viewport scrolls to follow. Playback
+   keeps running on the hidden engine, so render() keeps feeding this. */
+function bindBrowserLyrics(app, s) {
+  const list = $(".br-lyric-results", app.win); if (!list) return;
+  app.danmaku = null;
+  let n = 0;
+  lyricSinkClear();
+  lyricSinkAdd(list, {
+    scrollEl: app.el.view,
+    render: (text) => {
+      n++;
+      const site = LYRIC_SITES[n % LYRIC_SITES.length];
+      const row = document.createElement("a");
+      row.className = "br-result br-lyric-result";
+      row.innerHTML =
+        `<div class="br-r-url"><span class="br-fav">🎵</span>${esc(site.host)} › 歌詞/${1050 + n}</div>` +
+        `<div class="br-r-title">${esc(text)}</div>` +
+        `<div class="br-r-snip">「${esc(s.t)}」${esc(s.r)} — ${esc(s.a)} feat. 初音ミク · 歌詞 ${n}行目 …</div>`;
+      return row;
+    },
+  });
 }
 async function streamResults(app) {
   const rows = $$(".br-result", app.win);
   for (const r of rows) { cineGuard(); r.classList.remove("rhide"); await cineSleep(150); }
 }
 
+/* smoothly animate a scroll container to `to` (px) — awaitable, motion-safe */
+function cineScrollTo(el, to, ms = 1100) {
+  return new Promise((resolve) => {
+    if (!el || reduceMotion) { if (el) el.scrollTop = to; return resolve(); }
+    const from = el.scrollTop, d = to - from, t0 = performance.now();
+    if (Math.abs(d) < 2) { el.scrollTop = to; return resolve(); }
+    const ease = (p) => 1 - Math.pow(1 - p, 3);
+    requestAnimationFrame(function step(now) {
+      if (!Cinema.running || Cinema.aborted) { el.scrollTop = to; return resolve(); }
+      const p = Math.min(1, (now - t0) / ms);
+      el.scrollTop = from + d * ease(p);
+      if (p < 1) requestAnimationFrame(step); else resolve();
+    });
+  });
+}
+
+/* linger on the results page until playback passes `frac` of the song, so the
+   live lyrics panel shows at least that much. Bails early if autoplay was
+   blocked (so we fall through to the Nico page's click-to-play gate). */
+async function cineWaitForFraction(frac) {
+  const t0 = performance.now(); let everPlayed = false;
+  for (;;) {
+    cineGuard();
+    const dur = player && player.video ? (player.video.duration || 0) : 0;
+    const pos = lastRenderPos;
+    if (pos > 0 || (player && player.isPlaying)) everPlayed = true;
+    const el = performance.now() - t0;
+    if (everPlayed && dur && pos >= dur * frac) return;   // reached the target fraction
+    if (!everPlayed && el > 6500) return;                 // never started → autoplay blocked
+    if (el > 100000) return;                              // absolute safety cap
+    await cineSleep(300);
+  }
+}
+
+/* a hidden playback surface so the song can load (and later play) before the
+   browser window exists — render() drives this until the Nico stage takes over. */
+function cineMakeLoader(i) {
+  const host = document.createElement("div");
+  host.className = "cine-loader"; host.setAttribute("aria-hidden", "true");
+  host.innerHTML =
+    `<div class="stage"><div class="hero"><div class="titlecard"></div><div class="lyric"></div></div></div>` +
+    `<p class="sr-lyric"></p><span class="fill"></span><span class="time"></span>` +
+    `<span class="statusline"></span><button class="play"></button>`;
+  screenEl.appendChild(host);
+  return { key: "cine-loader", win: host, song: i, _loader: true, el: {
+    stage: $(".stage", host), hero: $(".hero", host), titlecard: $(".titlecard", host),
+    lyric: $(".lyric", host), sr: $(".sr-lyric", host), fill: $(".fill", host),
+    time: $(".time", host), status: $(".statusline", host), play: $(".play", host),
+  } };
+}
+function cineRemoveLoader() { const h = $(".cine-loader", screenEl); if (h) h.remove(); }
+
+/* wait until the TextAlive timeline is ready (or give up after a while) */
+async function cineWaitForLoad(maxMs = 16000) {
+  const t0 = performance.now();
+  for (;;) {
+    cineGuard();
+    if (!player) return false;
+    if (player.video) return true;
+    if (performance.now() - t0 > maxMs) return false;
+    await cineSleep(220);
+  }
+}
+
+/* the loading terminal — shows while the song decodes, then closes */
+function cineLoadingTerminal(i) {
+  const s = SONGS[i];
+  const app = makeWindow("cine-term0", "miku@mikuos: ~", "💻", "app-term");
+  app.win.insertAdjacentHTML("beforeend", `<div class="appbody term"><pre class="term-out"></pre></div>`);
+  placeWin(app, 372, 250, 536, 226);
+  return app;
+}
+
 /* ---- the scripted intro -------------------------------------------------- */
 async function introSequence(i) {
   const s = SONGS[i];
-  const app = openBrowser();
   screenEl.classList.add("cine-auto");           // hide the real cursor while auto-driving
-  cineCursor(); showSkip();
-  await cineSleep(450);
-  brHome(app);
+  cineCursor();
+
+  // 1) load the song FIRST, on a hidden surface, with a terminal showing progress
+  const loader = cineMakeLoader(i);
+  if (player) loadSong(loader, false);           // preload only — playback starts at the results page
+  const term = cineLoadingTerminal(i);
+  const out = $(".term-out", term.win);
+  await typePre(out, [
+    `miku@mikuos:~$ mikuload --song "${s.r}"`,
+    `[ .. ] connecting TextAlive …`,
+    `[ ok ] token validated`,
+    `[ .. ] fetching beat / chord / 歌詞 timeline …`,
+  ], 16);
+  await cineWaitForLoad();
+  const pc = (player && player.video && player.video.phraseCount) || "—";
+  await typePre(out, [`[ ok ] decode ready — ${pc} phrases`, `miku@mikuos:~$ start MikuNet Explorer`], 13);
   await cineSleep(650);
+  if (apps.get("cine-term0") === term) closeApp(term);   // loading done → terminal closes
+
+  // 2) the mouse selects the browser on the desktop and opens it
+  const icon = $(".icon.app-browser", elIcons);
+  if (icon) await cineClickEl(icon, 220);
+  const app = openBrowser();
+  app.song = i;
+  brProgress(app);
+  await cineSleep(360);
+  brHome(app);
+  await cineSleep(560);
+
+  // 3) type the title and search
   const box = $(".br-q", app.win);
   await cineClickEl(box, 160);
-  await cineType(box, `${s.t} 歌詞`);
-  await cineSleep(320);
+  await cineType(box, `${s.t} 歌詞`);             // what we type is still the title
+  await cineSleep(280);
   await cineClickEl($(".br-sbtn", app.win), 180);
   brProgress(app);
-  await cineSleep(820);
+  await cineSleep(740);
+
+  // 4) results appear → the song starts playing and the lyrics ARE the results
   setAddr(app, `https://mikusearch.jp/search?q=${encodeURIComponent(s.t + " 歌詞")}`);
   brResults(app, `${s.t} 歌詞`, 1);
+  bindBrowserLyrics(app, s);
+  if (player && player.video) { try { Promise.resolve(player.requestPlay()).catch(() => {}); } catch {} }   // play immediately on the results page
   await streamResults(app);
-  await cineSleep(620);
-  await cineClickEl($(".br-page-next", app.win), 260);   // "max sites reached → next page"
-  brProgress(app); await cineSleep(560);
-  brResults(app, `${s.t} 歌詞`, 2);
-  await streamResults(app);
-  await cineSleep(520);
-  await cineClickEl($(".br-result", app.win), 200);        // pick the first result
-  brProgress(app); await cineSleep(900);
+  await cineWaitForFraction(0.25);                // keep the lyric-results scrolling for ≥1/4 of the song
+
+  // 5) scroll back up and click through to the Nico video page
+  lyricSinkClear();
+  await cineScrollTo(app.el.view, 0);
+  await cineSleep(300);
+  await cineClickEl($(".br-result", app.win), 200);
+  brProgress(app); await cineSleep(820);
   await openNicoPage(app, i);
 }
 
@@ -1567,6 +1811,9 @@ async function openNicoPage(app, i) {
   const s = SONGS[i];
   Cinema.phase = "play";
   hideSkip();
+  const t0 = apps.get("cine-term0"); if (t0) closeApp(t0);   // drop the loading terminal (skip path)
+  cineRemoveLoader();                                        // the hidden loader hands off to the Nico stage
+  lyricSinkClear();                                          // results feed is about to be replaced
   setAddr(app, `https://www.nicovideo.jp/watch/${nicoId(i)}`);
   const bars = Array.from({ length: 28 }, () => "<i></i>").join("");
   app.el.view.innerHTML =
@@ -1595,7 +1842,7 @@ async function openNicoPage(app, i) {
        <div class="nico-side"><div class="nico-side-h">コメント</div><div class="nico-cmt-list"></div></div>
      </div>`;
   app.win.classList.add("browsing-nico");
-  if (!app.max) toggleMax(app);
+  // (no auto-maximize — the video page stays a normal window)
 
   // wire the browser app up as a playback surface so render() drives it
   app.song = i;
@@ -1613,6 +1860,7 @@ async function openNicoPage(app, i) {
   app.el.views = $(".nico-views", app.win);
   app.el.cc = $(".nico-cc", app.win);
   app.el.gate = $(".nico-gate", app.win);
+  app.el.nicovis = $$(".nico-vis i", app.win);     // bars driven by the song in render()
   app.lines = [];
   Cinema.views = 12034; Cinema.cc = 0;
   showTitleCard(app, s);
@@ -1630,7 +1878,14 @@ async function openNicoPage(app, i) {
   Sfx.play("ding");
   pushMRU(i);
 
-  if (player) { loadSong(app, true); nicoPlayWatch(app, 0); }
+  if (player) {
+    // the song was already loaded (and playing) on the results page — keep going
+    // from where it is rather than restarting; just rebind to the danmaku stage.
+    const continuing = loadedIndex === i && player.video;
+    if (continuing) { active = app; phrase = null; chars = []; setStatus("live"); }
+    else loadSong(app, true);
+    nicoPlayWatch(app, 0);
+  }
   else { app.el.status.textContent = "● NO SIGNAL — TextAlive unavailable"; toast("TextAlive unavailable — can't play audio.", "err"); }
 
   if (!Cinema.flourishOn) startFlourishes(i);     // run the OS-comes-alive sequence once
@@ -1679,18 +1934,14 @@ function cineBeat() {
   setTimeout(() => app.el && app.el.stage && app.el.stage.classList.remove("beat"), 90);
 }
 
-/* ---- the OS coming alive: toasts, error, terminal, editor, office -------- */
+/* ---- the OS coming alive: a few ambient toasts (extra windows removed) --- */
 async function startFlourishes(i) {
   Cinema.flourishOn = true;
   ambientLoop();
   try {
     await cineSleep(2600); cineGuard(); toast(`▶ いま再生中 — ${SONGS[i].t} / ${SONGS[i].a}`, "ok");
-    await cineSleep(3600); cineGuard(); toast("MikuOS Update: 新しいビジュアライザ「Danmaku」が利用可能です", "info");
-    await cineSleep(3200); cineGuard(); await cineTerminal(i);
-    await cineSleep(4200); cineGuard(); await cineError(i);
-    await cineSleep(3400); cineGuard(); await cineEditor(i);
-    await cineSleep(4600); cineGuard(); await cineOffice(i);
-    await cineSleep(3000); cineGuard(); toast("レンダリング快調 · 60fps · GPU: MikuGL", "ok");
+    await cineSleep(4400); cineGuard(); toast("MikuOS Update: 新しいビジュアライザ「Danmaku」が利用可能です", "info");
+    await cineSleep(5200); cineGuard(); toast("レンダリング快調 · 60fps · GPU: MikuGL", "ok");
   } catch (e) { /* aborted — show is over */ }
 }
 async function ambientLoop() {
@@ -1708,13 +1959,9 @@ async function ambientLoop() {
 }
 function placeWin(app, x, y, w, h) {
   app.win.style.left = clamp(x, 0, 1280 - 120) + "px";
-  app.win.style.top = clamp(y, 0, 722 - 60) + "px";
+  app.win.style.top = clamp(y, 0, 995 - 60) + "px";
   if (w) app.win.style.width = w + "px";
   if (h) app.win.style.height = h + "px";
-}
-function cineAutoClose(app, ms) {
-  const id = setTimeout(() => { if (apps.get(app.key) === app) closeApp(app); }, reduceMotion ? Math.min(ms, 1200) : ms);
-  Cinema.timers.push(id);
 }
 async function typePre(el, lines, per = 24) {
   el.textContent = "";
@@ -1723,80 +1970,8 @@ async function typePre(el, lines, per = 24) {
     el.textContent += "\n"; el.scrollTop = el.scrollHeight; await cineSleep(per * 6);
   }
 }
-async function cineTerminal(i) {
-  if (apps.has("cine-term")) return;
-  const s = SONGS[i];
-  const app = makeWindow("cine-term", "miku@mikuos: ~", "💻", "app-term");
-  app.win.insertAdjacentHTML("beforeend", `<div class="appbody term"><pre class="term-out"></pre></div>`);
-  placeWin(app, 56, 372, 540, 286);
-  await typePre($(".term-out", app.win), [
-    `miku@mikuos:~$ mikuvis play --song "${s.r}" --mode danmaku`,
-    `[ ok ] linking TextAlive timeline …`,
-    `[ ok ] beat grid locked @ ${bpm || 120} bpm`,
-    `[ ok ] spawning comment swarm (∞ 職人)`,
-    `[ ok ] danmaku ▒▒▒▒▒▒▒▒▒▒ 100%`,
-    `miku@mikuos:~$ ▏`,
-  ], 22);
-  cineAutoClose(app, 9000);
-}
-async function cineError(i) {
-  if (apps.has("cine-err")) return;
-  const app = makeWindow("cine-err", "MikuVis", "⚠", "app-error");
-  app.win.insertAdjacentHTML("beforeend",
-    `<div class="appbody errbody">
-       <div class="err-row"><span class="err-ic">✖</span>
-         <div><b>mikuvis.dll でエラーが発生しました。</b>
-           <p>The visualizer is having too much fun. Continue anyway?</p>
-           <code>0x4D494B55 — STATUS_TOO_LIVELY</code></div></div>
-       <div class="err-foot"><button class="tbtn primary err-ok">続行 / Continue ♪</button><button class="tbtn err-ok">Cancel</button></div>
-     </div>`);
-  placeWin(app, 640, 330, 408, 196);
-  Sfx.play("error");
-  $$(".err-ok", app.win).forEach((b) => b.addEventListener("click", () => closeApp(app)));
-  cineAutoClose(app, 7000);
-}
-async function cineEditor(i) {
-  if (apps.has("cine-edit")) return;
-  const s = SONGS[i];
-  const app = makeWindow("cine-edit", `${s.r}_lyrics.txt — Notepad`, "📝", "app-edit");
-  app.win.insertAdjacentHTML("beforeend",
-    `<div class="appbody editbody"><div class="edit-menu">File  Edit  Format  View  Help</div><pre class="edit-out"></pre></div>`);
-  placeWin(app, 700, 250, 470, 320);
-  // pull a few real phrases if the lyric timeline is loaded
-  const phrases = [];
-  try {
-    let p = player && player.video && player.video.firstPhrase;
-    while (p && phrases.length < 8) { if (p.text) phrases.push(p.text); p = p.next; }
-  } catch {}
-  const lines = phrases.length ? phrases
-    : [s.t, s.r, "—", "（歌詞を取得しています…）", s.a + " feat. 初音ミク"];
-  await typePre($(".edit-out", app.win), [`♪ ${s.t} — ${s.a}`, "—————————————", ...lines], 20);
-  cineAutoClose(app, 11000);
-}
-async function cineOffice(i) {
-  if (apps.has("cine-calc")) return;
-  const s = SONGS[i];
-  const app = makeWindow("cine-calc", "track-stats.xlsx — MikuCalc", "📊", "app-calc");
-  const cells = [
-    ["A1", "Track", s.t], ["A2", "Artist", s.a], ["A3", "Romaji", s.r],
-    ["A4", "BPM", String(bpm || "—")], ["A5", "Comments", "∞"], ["A6", "Vibe", "🔥🔥🔥🔥🔥"],
-  ];
-  const rows = cells.map(([c, k, v]) =>
-    `<div class="xl-row"><span class="xl-c">${esc(c)}</span><span class="xl-k">${esc(k)}</span><span class="xl-v">${esc(v)}</span></div>`).join("");
-  app.win.insertAdjacentHTML("beforeend",
-    `<div class="appbody calcbody"><div class="xl-bar">fx ✓ track-stats</div><div class="xl-grid">${rows}</div></div>`);
-  placeWin(app, 120, 250, 360, 250);
-  cineAutoClose(app, 10000);
-}
-
 /* ---- skip control + scenario lifecycle ----------------------------------- */
-function showSkip() {
-  if ($("#cine-skip")) return;
-  const b = document.createElement("button"); b.id = "cine-skip"; b.className = "cine-skip";
-  b.textContent = "Skip intro ▶";
-  b.addEventListener("click", skipIntro);
-  screenEl.appendChild(b);
-}
+/* the Skip button was removed; Space/Enter still skips the intro from the keyboard */
 function hideSkip() { const b = $("#cine-skip"); if (b) b.remove(); }
 function skipIntro() {
   if (!Cinema.running || Cinema.phase !== "intro") return;
@@ -1837,14 +2012,15 @@ function endScenario(toDesktop = true) {
   if (!Cinema.running) return;
   Cinema.running = false; Cinema.phase = ""; Cinema.flourishOn = false; Cinema.aborted = true;
   cineClearTimers();
-  hideSkip(); cineHideCursor(true);
+  hideSkip(); cineHideCursor(true); cineRemoveLoader();
+  lyricSinkClear();
   screenEl.classList.remove("cine-auto");
-  ["browser", "cine-term", "cine-err", "cine-edit", "cine-calc"].forEach((k) => {
+  ["browser", "cine-term0"].forEach((k) => {
     const a = apps.get(k); if (a) { apps.delete(k); a.win.remove(); }
   });
   // only tear down playback if the cinematic actually owns the player — a
-  // pre-existing Free-Play song (active.key !== "browser") must keep playing.
-  if (active && active.key === "browser") {
+  // pre-existing Free-Play song must keep playing.
+  if (active && (active.key === "browser" || active._loader)) {
     try { player && player.requestStop(); } catch {}
     active = null; loadedIndex = -1;
   }

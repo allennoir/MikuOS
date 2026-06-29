@@ -18,16 +18,16 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 const screenEl = document.getElementById("crt");
 const mount = document.getElementById("stage3d");
 
-/* ---- flat fallback: scale the 1280x752 surface to fit the viewport -------- */
+/* ---- flat fallback: scale the 1280x1025 surface to fit the viewport ------- */
 function fitFlat() {
-  const fit = Math.min(innerWidth / 1280, innerHeight / 752);
+  const fit = Math.min(innerWidth / 1280, innerHeight / 1025);
   screenEl.style.setProperty("--fit", fit.toFixed(4));
 }
 
 try {
-  /* screen DOM is 1280x752 (~1.7:1); map it to 3.2 world units wide */
-  const PX_W = 1280, SCREEN_W = 3.2, SCREEN_H = 1.88, SCALE = SCREEN_W / PX_W;
-  const BODY_W = 3.76, BODY_H = 2.51, BODY_D = 1.05;
+  /* screen DOM is 1280x1025 (~1.29:1, matches bg.png); map it to 3.2 world units wide */
+  const PX_W = 1280, SCREEN_W = 3.2, SCREEN_H = 2.5625, SCALE = SCREEN_W / PX_W;
+  const BODY_W = 3.76, BODY_H = 3.2, BODY_D = 1.05;
   const NECK_H = 0.22, BASE_H = 0.09, SOFF = 0.035;
   const GY = BODY_H / 2 + NECK_H + BASE_H;
 
@@ -37,7 +37,7 @@ try {
 
   const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 0.1, 100);
   const target = new THREE.Vector3(0, GY, 0);
-  camera.position.set(0, GY + 0.12, 5.3);
+  camera.position.set(0, GY + 0.12, 5.9);
   camera.lookAt(target);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -278,7 +278,7 @@ try {
     for (const c of cones) c.scale.z += (push - c.scale.z) * 0.25;
 
     /* camera: idle parallax + a subtle lean-in on play */
-    const zTarget = playing && !reduce ? 5.0 : 5.3;
+    const zTarget = playing && !reduce ? 5.6 : 5.9;
     const yBias = playing && !reduce ? -0.06 : 0.12;
     const px = reduce ? 0 : mx * 0.5, pyo = reduce ? 0 : my * 0.35;
     camera.position.x += (px - camera.position.x) * 0.05;
